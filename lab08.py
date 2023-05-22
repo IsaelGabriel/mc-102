@@ -53,13 +53,14 @@ def main():
             categorias_simples[categoria] = filmes_vencedores[0]
 
     filmes_ganhadores_simples = set(categorias_simples.values())
+    lista_ganhadores_simples = list(categorias_simples.values())
 
     categorias_especiais["pior filme do ano"] = [list(filmes_ganhadores_simples)[0]]
 
     for filme in filmes_ganhadores_simples:
-        if list(categorias_simples.values()).count(filme) > list(categorias_simples.values()).count(categorias_especiais["pior filme do ano"][0]):
+        if lista_ganhadores_simples.count(filme) > lista_ganhadores_simples.count(categorias_especiais["pior filme do ano"][0]):
             categorias_especiais["pior filme do ano"] = [filme]
-        elif list(categorias_simples.values()).count(filme) == list(categorias_simples.values()).count(categorias_especiais["pior filme do ano"][0]):
+        elif lista_ganhadores_simples.count(filme) == lista_ganhadores_simples.count(categorias_especiais["pior filme do ano"][0]):
             categorias_especiais["pior filme do ano"].append(filme)
     
     if len(categorias_especiais["pior filme do ano"]) == 1:
@@ -75,6 +76,7 @@ def main():
             if soma_atual > maior_soma:
                 filme_vencedor = filme
                 maior_soma = soma_atual
+        categorias_especiais["pior filme do ano"] = filme_vencedor
 
     for filme in filmes:
         if not avaliacoes[filme]["avaliado"]: 
