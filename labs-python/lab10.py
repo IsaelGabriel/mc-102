@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Part:
     weakness: str
@@ -46,8 +47,7 @@ class Enemy:
 
 
 
-def main(): # -> list[str]:
-    # output: list[str] = []
+def main():
     
     max_hp: int = int(input())
     current_hp: int = max_hp
@@ -87,8 +87,7 @@ def main(): # -> list[str]:
             enemies.append(Enemy(hp, atk, parts))
 
         print(f'Combate {current_wave}, vida = {current_hp}')
-        criticals: list[dict] = [{} for enemy in enemies]
-        current_enemy_0: int = 0
+        criticals: list[dict] = [{} for _ in enemies]
 
         arrows_used: dict = {}
 
@@ -113,7 +112,6 @@ def main(): # -> list[str]:
                         criticals[enemy_index][coordinates]: int = 1
 
                 if enemies[enemy_index].hp <= 0:
-                    # enemies.pop(enemy_index)
                     print(f"Máquina {str(enemy_index)} derrotada")
 
                     if all(enemy.hp <= 0 for enemy in enemies):
@@ -162,15 +160,5 @@ def main(): # -> list[str]:
     return
 
 
-
-
 if __name__ == "__main__":
     main()
-    #try:
-    #    main()
-    #finally:
-    #    print("-----------")
-    #    while len(input()) != 0:
-    #        pass
-    #for line in main():
-    #    print(line)
