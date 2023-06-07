@@ -5,8 +5,6 @@ items: list
 class Vector2:
     def __init__(self, coordinates: tuple[int, int]):
         self._coordinates: tuple[int, int] = coordinates
-        if self.y < 0: self.y = 0
-        if self.x < 0: self.x = 0
     
     @property
     def x(self) -> int:
@@ -16,8 +14,6 @@ class Vector2:
     def x(self, new_x: int):
         global game_map
 
-        if new_x < 0: new_x = 0
-        elif new_x > len(game_map[0]) - 1: new_x = len(game_map[0]) - 1
         self._coordinates = (self._coordinates[0], new_x)
 
     @property
@@ -28,17 +24,13 @@ class Vector2:
     def y(self, new_y: int):
         global game_map
         
-        if new_y < 0: new_y = 0
-        elif new_y > len(game_map) - 1: new_y = len(game_map) - 1
         self._coordinates = (new_y, self._coordinates[1])
     
     def __add__(self, other):
         if isinstance(other, Vector2):
-            self.x += other.x
-            self.y += other.y
+            return Vector2((other.y + self.y, other.x + self.x))
         elif isinstance(other, tuple[int, int]):
-            self.x += other[1]
-            self.y += other[0]
+            return Vector2((other[0] + self.y, other[1] + self.x))
 
     def __eq__(self, other) -> bool:
         if isinstance(other, Vector2):
@@ -55,9 +47,14 @@ class Vector2:
 
 class GameObject:
     def __init__(self):
-        self._position = Vector2(0, 0)
+        global game_map
+
+        self._position = Vector2((0, 0))
         self._id: int = 0
         self.active = True
+
+        game_map[0][0].append(self)
+        self.update_id()
 
     @property
     def position(self) -> Vector2:
@@ -67,11 +64,12 @@ class GameObject:
     def position(self, new_position: Vector2):
         global game_map
 
-        game_map[self.position.y][self.position.x].remove(self._id)
+        game_map[self._position.y][self._position.x].remove(self)
 
-        self._position = new_position
+        self._position.x = min(max(0, new_position.x), len(game_map[0]) - 1)
+        self._position.y = min(max(0, new_position.y), len(game_map) - 1)
 
-        game_map[self.position.y][self.position.x].append(self)
+        game_map[self._position.y][self._position.x].append(self)
         self.update_id()
 
     def update_id(self):
@@ -80,11 +78,12 @@ class GameObject:
 
 class Enemy(GameObject):
     def __init__(self, args: list):
-        super.__init__()
+        super().__init__()
         self._hp: int = int(args[0])
         self._atk: int = int(args[1])
         self._behaviour: str = args[2]
-        self._position: Vector2 = Vector2(tuple(map(int, args[3].split(','))))
+        self.position = Vector2(tuple(map(int, args[3].split(','))))
+        
     
     @property
     def behaviour(self) -> str:
@@ -101,9 +100,13 @@ class Enemy(GameObject):
         if self._hp == 0:
             self.active = False
 
+    @property
+    def atk(self) -> int:
+        return self._atk
+
     def update(self):
         if not self.active: return
-        direction = Vector2(0, 0)
+        direction = Vector2((0, 0))
         match self._behaviour:
             case 'U':
                 direction.y = -1
@@ -118,10 +121,10 @@ class Enemy(GameObject):
 
 class Item(GameObject):
     def __init__(self, args: list):
-        super.__init__()
+        super().__init__()
         self._name: str = args[0]
         self._behaviour: str = args[1]
-        self._position: Vector2 = Vector2(tuple(map(int, args[2].split(','))))
+        self.position = Vector2(tuple(map(int, args[2].split(','))))
         self._value: int = int(args[3])
 
     @property
@@ -139,11 +142,12 @@ class Player(GameObject):
     def __init__(self, hp: int, atk: int, position: Vector2, exit_position: Vector2):
         global game_map
 
-        super.__init__()
+        super().__init__()
         self._hp: int = hp
         self._atk: int = atk
-        self._position: Vector2 = position
+        self.position = position
         self._exit: Vector2 = exit_position
+        self._got_to_bottom: bool = False
 
         game_map[position.y][position.x].append(self)
         self.update_id()
@@ -170,21 +174,30 @@ class Player(GameObject):
         self._atk = max(1, new_atk)
 
     def move(self):
-        direction = Vector2(0, 0)
+        global game_map
 
-        if self.y % 2 == 0:
-            direction.x = -1
+        direction = Vector2((0, 0))
+
+        if self._got_to_bottom:
+            if self.position.y % 2 == 0:
+                direction.x = -1
+            else:
+                direction.x = 1
+
+            on_limit: bool = (direction.x == -1 and self.position.x == 0)\
+                or (direction.x == 1 and self.position.x == len(game_map[0]) - 1)
+
+            if on_limit:
+                direction.x = 0
+                direction.y = -1
         else:
-            direction.x = 1
+            direction.y = 1
 
-        on_limit: bool = (direction.x == -1 and self.x == 0)\
-              or (direction.x == 1 and self.x == len(game_map[0]) - 1)
-
-        if on_limit:
-            direction.x = 0
-            direction.y = -1
 
         self.position += direction
+        if direction.y == 1:
+            if self.position.y == len(game_map) - 1:
+                self._got_to_bottom = True
     
     def sorted_objects(self) -> list[GameObject]:
         global enemies, items
@@ -192,7 +205,7 @@ class Player(GameObject):
         obj_list: list[GameObject] = []
 
         for item in items:
-            if self.positon == item.position and item.active:
+            if self.position == item.position and item.active:
                 obj_list.append(item)
 
         for enemy in enemies:
@@ -219,16 +232,11 @@ class Player(GameObject):
 
     def update(self):
         global game_map
-        
-        self.move()
-
-        if self.position == self.exit:
-            self.active = False
-            return
 
         collisions = self.sorted_objects()
 
         for game_obj in collisions:
+            if not self.active: break
             if not game_obj.active: continue
 
             if isinstance(game_obj, Item):
@@ -241,6 +249,8 @@ class Player(GameObject):
                 elif game_obj.behaviour == 'd':
                     self.atk += game_obj.value
                 game_obj.active = False
+            if isinstance(game_obj, Enemy):
+                self.fight_enemy(game_obj)
 
     def die(self):
         self.active = False
@@ -248,23 +258,12 @@ class Player(GameObject):
 def input_coordinates(sep: str = " ") -> Vector2:
     return Vector2(tuple(map(int, input().split(sep))))
 
-def create_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[Item]) -> list[list]:
-    game_map = [[[] for columns in range(dimensions.x)] for lines in range(dimensions.y)]
-
-    for enemy in enemies:
-        game_map[enemy.position.y][enemy.position.x].append(enemy)
-    
-    for item in items:
-        game_map[item.position.y][item.position.x].append(item)
-    
-    return game_map
-
 def print_game_map(player: Player, exit_position: Vector2):
     global game_map, enemies, items
     
     text: str = ""
     
-    current_position: Vector2(0, 0)
+    current_position: Vector2 = Vector2((0, 0))
 
     for y in range(len(game_map)):
         current_position.y = y
@@ -291,7 +290,7 @@ def print_game_map(player: Player, exit_position: Vector2):
 
         text += " ".join(line) + "\n"
 
-    print(text + "\n")
+    print(text)
 
 
 def main():
@@ -299,31 +298,37 @@ def main():
 
     initial_hp, initial_atk = map(int, input().split())
     map_dimensions: Vector2 = input_coordinates()
+
+    game_map = [[[] for column in range(map_dimensions.x)] for line in range(map_dimensions.y)]
+
     player_position: Vector2 = input_coordinates(',')
     exit_position: Vector2 = input_coordinates(',')
     enemy_quantity: int = int(input())
-    enemies: list[Enemy] = list(map(Enemy, [input().split() for _ in range(enemy_quantity)]))
+    enemies = list(map(Enemy, [input().split() for _ in range(enemy_quantity)]))
     item_quantity: int = int(input())
-    items: list[Item] = list(map(Item, [input().split() for _ in range(item_quantity)]))
-
-
-    game_map = create_game_map(map_dimensions, enemies, items)
+    items = list(map(Item, [input().split() for _ in range(item_quantity)]))
 
     player = Player(initial_hp, initial_atk, player_position, exit_position)
 
+    print_game_map(player, exit_position)
+
     while player.active:
-        player.update()
-        
+        player.move()
+
         for enemy in enemies:
             if enemy.active:
                 enemy.update()
             else:
                 enemies.remove(enemy)
         
-        print_game_map(player, exit_position)
-
         if player.position == exit_position:
+            print_game_map(player, exit_position)
+            player.active = False  
             print("Chegou ao fim!")
+        else:
+            player.update()
+            print_game_map(player, exit_position)
+
 
 
 if __name__ == "__main__":
