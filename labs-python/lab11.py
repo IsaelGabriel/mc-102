@@ -23,6 +23,14 @@ class Vector2:
     def y(self, new_y: int):
         if new_y < 0: new_y = 0
         self._coordinates = (new_y, self._coordinates[1])
+    
+    def __add__(self, other):
+        if isinstance(other, Vector2):
+            self.x += other.x
+            self.y += other.y
+        elif isinstance(other, tuple[int, int]):
+            self.x += other[1]
+            self.y += other[0]
 
 
 class GameObject:
@@ -70,6 +78,15 @@ class Player(GameObject):
     def atk(self) -> int:
         return self._atk
 
+    def move(self):
+        direction = Vector2(0, 0)
+
+        self.position += direction
+    
+    def update(self):
+        self.move()
+    
+
     def die(self):
         pass
 
@@ -115,6 +132,8 @@ def print_game_map(game_map: list):
     pass
 
 def main():
+    global game_map
+
     initial_hp, initial_dmg = map(int, input().split())
     map_dimensions: Vector2 = input_coordinates()
     player_position: Vector2 = input_coordinates(',')
