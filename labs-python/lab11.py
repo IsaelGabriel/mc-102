@@ -48,6 +48,9 @@ class Vector2:
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
+    
+    def __str__(self) -> str:
+        return str(self._coordinates)
 
 
 class GameObject:
@@ -87,6 +90,17 @@ class Enemy(GameObject):
     def behaviour(self) -> str:
         return self._behaviour
     
+    @property
+    def hp(self) -> int:
+        return self._hp
+    
+    @hp.setter
+    def hp(self, new_hp):
+        if new_hp < 0: new_hp = 0
+        self._hp = new_hp
+        if self._hp == 0:
+            self.active = False
+
     def update(self):
         direction = Vector2(0, 0)
         match self._behaviour:
@@ -141,8 +155,6 @@ class Player(GameObject):
     def hp(self, new_hp: int):
         if new_hp < 0: new_hp = 0
         self._hp = new_hp
-        if new_hp == 0:
-            self.die()
 
     @property
     def atk(self) -> int:
@@ -175,14 +187,30 @@ class Player(GameObject):
         obj_list: list[GameObject] = []
 
         for item in items:
-            if self.positon == item.position:
+            if self.positon == item.position and item.active:
                 obj_list.append(item)
 
         for enemy in enemies:
-            if self.position == enemy.position:
+            if self.position == enemy.position and enemy.active:
                 obj_list.append(enemy)
 
         return obj_list
+
+    def fight_enemy(self, enemy: Enemy):
+        dmg_caused: int = min(enemy.hp, self.atk)
+
+        enemy.hp -= dmg_caused
+        print(f"O Personagem deu {dmg_caused} de dano ao monstro na posicao {enemy.position}")
+        
+        if enemy.active:
+            dmg_taken: int = min(self.hp, enemy.atk)
+
+            self.hp -= dmg_taken
+            
+            print(f"O Monstro deu {dmg_taken} de dano ao Personagem. Vida restante = {self.hp}")
+
+            if self.hp == 0: 
+                self.die()
 
     def update(self):
         global game_map
@@ -198,12 +226,15 @@ class Player(GameObject):
                 print(game_obj)
                 if game_obj.behaviour == 'v':
                     self.hp += game_obj.value
+                    if self.hp == 0:
+                        self.die()
+
                 elif game_obj.behaviour == 'd':
                     self.atk += game_obj.value
                 game_obj.active = False
 
     def die(self):
-        pass
+        self.active = False
 
 def input_coordinates(sep: str = " ") -> Vector2:
     return Vector2(tuple(map(int, input().split(sep))))
