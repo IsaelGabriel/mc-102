@@ -62,51 +62,6 @@ class GameObject:
     def update_id(self):
         self._id = len(game_map[self.position.y][self.position.x]) - 1
 
-class Player(GameObject):
-    def __init__(self, hp: int, atk: int, position: Vector2):
-        super.__init__()
-        self._hp: int = hp
-        self._atk: int = atk
-        self._position: Vector2 = position
-
-    @property
-    def hp(self) -> int:
-        return self._hp
-    
-    @hp.setter
-    def hp(self, new_hp):
-        if new_hp < 0: new_hp = 0
-        self._hp = new_hp
-        if new_hp == 0:
-            self.die()
-
-    @property
-    def atk(self) -> int:
-        return self._atk
-
-    def move(self):
-        direction = Vector2(0, 0)
-
-        if self.y % 2 == 0:
-            direction.x = -1
-        else:
-            direction.x = 1
-
-        on_limit: bool = (direction.x == -1 and self.x == 0)\
-              or (direction.x == 1 and self.x == len(game_map[0]) - 1)
-
-        if on_limit:
-            direction.x = 0
-            direction.y = -1
-
-        self.position += direction
-    
-    def update(self):
-        self.move()
-    
-
-    def die(self):
-        pass
 
 class Enemy(GameObject):
     def __init__(self, args: list):
@@ -131,6 +86,74 @@ class Item(GameObject):
     @property
     def behaviour(self) -> str:
         return self._behaviour
+    
+    @property
+    def value(self) -> int:
+        return self._value
+
+    def __str__(self) -> str:
+        return f"[{self._behaviour}]Personagem adquiriu o objeto {self._name} com status de {str(self._value)}"
+
+class Player(GameObject):
+    def __init__(self, hp: int, atk: int, position: Vector2):
+        super.__init__()
+        self._hp: int = hp
+        self._atk: int = atk
+        self._position: Vector2 = position
+        self.alive: bool = True
+
+    @property
+    def hp(self) -> int:
+        return self._hp
+    
+    @hp.setter
+    def hp(self, new_hp: int):
+        if new_hp < 0: new_hp = 0
+        self._hp = new_hp
+        if new_hp == 0:
+            self.die()
+
+    @property
+    def atk(self) -> int:
+        return self._atk
+
+    @atk.setter
+    def atk(self, new_atk: int):
+        if new_atk < 0: new_atk = 0
+        self._atk = new_atk
+
+    def move(self):
+        direction = Vector2(0, 0)
+
+        if self.y % 2 == 0:
+            direction.x = -1
+        else:
+            direction.x = 1
+
+        on_limit: bool = (direction.x == -1 and self.x == 0)\
+              or (direction.x == 1 and self.x == len(game_map[0]) - 1)
+
+        if on_limit:
+            direction.x = 0
+            direction.y = -1
+
+        self.position += direction
+    
+    def update(self):
+        global game_map
+        
+        self.move()
+
+        for game_obj in game_map[self.position.y][self.position.x]:
+            if isinstance(game_obj, Item):
+                print(game_obj)
+                if game_obj.behaviour == 'v':
+                    self.hp += game_obj.value
+                elif game_obj.behaviour == 'd':
+                    self.atk += game_obj.value
+
+    def die(self):
+        pass
 
 def input_coordinates(sep: str = " ") -> Vector2:
     return Vector2(tuple(map(int, input().split(sep))))
@@ -162,6 +185,11 @@ def main():
     items: list[Item] = list(map(Item, [input().split() for _ in range(item_quantity)]))
 
     game_map = create_game_map(map_dimensions, monsters, items)
+
+    game_active: bool
+
+    while game_active:
+        pass
 
 if __name__ == "__main__":
     main()
