@@ -81,6 +81,18 @@ class Player(GameObject):
     def move(self):
         direction = Vector2(0, 0)
 
+        if self.y % 2 == 0:
+            direction.x = -1
+        else:
+            direction.x = 1
+
+        on_limit: bool = (direction.x == -1 and self.x == 0)\
+              or (direction.x == 1 and self.x == len(game_map[0]) - 1)
+
+        if on_limit:
+            direction.x = 0
+            direction.y = -1
+
         self.position += direction
     
     def update(self):
