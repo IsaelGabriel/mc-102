@@ -8,6 +8,7 @@ class Vector2:
     
     @x.setter
     def x(self, new_x: int):
+        if new_x < 0: new_x = 0
         self._coordinates = (self._coordinates[0], new_x)
 
     @property
@@ -16,7 +17,40 @@ class Vector2:
     
     @y.setter
     def y(self, new_y: int):
+        if new_y < 0: new_y = 0
         self._coordinates = (new_y, self._coordinates[1])
+
+class Player:
+    def __init__(self, hp: int, atk: int, position: Vector2):
+        self._hp: int = hp
+        self._atk: int = atk
+        self._position: Vector2 = position
+
+    @property
+    def hp(self) -> int:
+        return self._hp
+    
+    @hp.setter
+    def hp(self, new_hp):
+        if new_hp < 0: new_hp = 0
+        self._hp = new_hp
+        if new_hp == 0:
+            self.die()
+
+    @property
+    def atk(self) -> int:
+        return self._atk
+
+    @property
+    def position(self) -> Vector2:
+        return self._position
+    
+    @position.setter
+    def position(self, new_position):
+        self._position = new_position
+
+    def die(self):
+        pass
 
 class Enemy:
     def __init__(self, args: list):
@@ -26,7 +60,7 @@ class Enemy:
         self._position: Vector2 = Vector2(tuple(map(int, args[3].split(','))))
     
     @property
-    def position(self) -> tuple[int, int]:
+    def position(self) -> Vector2:
         return self._position
     
     @position.setter
@@ -62,10 +96,13 @@ def formatted_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[It
     
     return game_map
 
+def print_game_map(game_map: list):
+    pass
+
 def main():
     initial_hp, initial_dmg = map(int, input().split())
     map_dimensions: Vector2 = input_coordinates()
-    inital_position: Vector2 = input_coordinates(',')
+    player_position: Vector2 = input_coordinates(',')
     exit_position: Vector2 = input_coordinates(',')
     monster_quantity: int = int(input())
     monsters: list[Enemy] = list(map(Enemy, [input().split() for _ in range(monster_quantity)]))
