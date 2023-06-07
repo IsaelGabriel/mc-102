@@ -1,6 +1,10 @@
+game_map: list[list]
+
 class Vector2:
     def __init__(self, coordinates: tuple[int, int]):
         self._coordinates: tuple[int, int] = coordinates
+        if self.y < 0: self.y = 0
+        if self.x < 0: self.x = 0
     
     @property
     def x(self) -> int:
@@ -20,8 +24,33 @@ class Vector2:
         if new_y < 0: new_y = 0
         self._coordinates = (new_y, self._coordinates[1])
 
-class Player:
+
+class GameObject:
+    def __init__(self):
+        self._position = Vector2(0, 0)
+        self._id: int = 0
+
+    @property
+    def position(self) -> Vector2:
+        return self._position
+    
+    @position.setter
+    def position(self, new_position: Vector2):
+        global game_map
+
+        game_map[self.position.y][self.position.x].remove(self._id)
+
+        self._position = new_position
+
+        game_map[self.position.y][self.position.x].append(self)
+        self.update_id()
+
+    def update_id(self):
+        self._id = len(game_map[self.position.y][self.position.x]) - 1
+
+class Player(GameObject):
     def __init__(self, hp: int, atk: int, position: Vector2):
+        super.__init__()
         self._hp: int = hp
         self._atk: int = atk
         self._position: Vector2 = position
@@ -41,19 +70,12 @@ class Player:
     def atk(self) -> int:
         return self._atk
 
-    @property
-    def position(self) -> Vector2:
-        return self._position
-    
-    @position.setter
-    def position(self, new_position):
-        self._position = new_position
-
     def die(self):
         pass
 
-class Enemy:
+class Enemy(GameObject):
     def __init__(self, args: list):
+        super.__init__()
         self._hp: int = int(args[0])
         self._atk: int = int(args[1])
         self._behaviour: str = args[2]
@@ -63,16 +85,9 @@ class Enemy:
     def behaviour(self) -> str:
         return self._behaviour
 
-    @property
-    def position(self) -> Vector2:
-        return self._position
-    
-    @position.setter
-    def position(self, new_position: Vector2):
-        self._position = new_position
-
-class Item:
+class Item(GameObject):
     def __init__(self, args: list):
+        super.__init__()
         self._name: str = args[0]
         self._behaviour: str = args[1]
         self._position: Vector2 = Vector2(tuple(map(int, args[2].split(','))))
@@ -82,14 +97,6 @@ class Item:
     def behaviour(self) -> str:
         return self._behaviour
 
-    @property
-    def position(self) -> Vector2:
-        return self._position
-    
-    @position.setter
-    def position(self, new_position: Vector2):
-        self._position = new_position
-
 def input_coordinates(sep: str = " ") -> Vector2:
     return Vector2(tuple(map(int, input().split(sep))))
 
@@ -97,10 +104,10 @@ def formatted_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[It
     game_map = [[[] for columns in range(dimensions.x)] for lines in range(dimensions.y)]
 
     for enemy in enemies:
-        game_map[enemy.position.y][enemy.position.x].append(enemy.behaviour)
+        game_map[enemy.position.y][enemy.position.x].append(enemy)
     
     for item in items:
-        game_map[item.position.y][item.position.x].append(item.behaviour)
+        game_map[item.position.y][item.position.x].append(item)
     
     return game_map
 
