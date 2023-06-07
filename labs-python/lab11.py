@@ -1,4 +1,6 @@
 game_map: list[list]
+enemies: list
+items: list
 
 class Vector2:
     def __init__(self, coordinates: tuple[int, int]):
@@ -38,6 +40,15 @@ class Vector2:
             self.x += other[1]
             self.y += other[0]
 
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Vector2):
+            return self.x == other.x and self.y == other.y
+        else:
+            return False
+
+    def __ne__(self, other) -> bool:
+        return not self.__eq__(other)
+
 
 class GameObject:
     def __init__(self):
@@ -75,6 +86,20 @@ class Enemy(GameObject):
     @property
     def behaviour(self) -> str:
         return self._behaviour
+    
+    def update(self):
+        direction = Vector2(0, 0)
+        match self._behaviour:
+            case 'U':
+                direction.y = -1
+            case 'D':
+                direction.y = 1
+            case 'L':
+                direction.x = -1
+            case 'R':
+                direction.x = 1
+        
+        self.position += direction
 
 class Item(GameObject):
     def __init__(self, args: list):
@@ -82,7 +107,7 @@ class Item(GameObject):
         self._name: str = args[0]
         self._behaviour: str = args[1]
         self._position: Vector2 = Vector2(tuple(map(int, args[2].split(','))))
-        self._value: int = max(1, int(args[3])) if self._behaviour == 'd' else int(args[3])
+        self._value: int = int(args[3])
 
     @property
     def behaviour(self) -> str:
@@ -125,8 +150,7 @@ class Player(GameObject):
 
     @atk.setter
     def atk(self, new_atk: int):
-        if new_atk < 0: new_atk = 0
-        self._atk = new_atk
+        self._atk = max(1, new_atk)
 
     def move(self):
         direction = Vector2(0, 0)
@@ -145,14 +169,30 @@ class Player(GameObject):
 
         self.position += direction
     
+    def sorted_objects(self) -> list[GameObject]:
+        global enemies, items
+
+        obj_list: list[GameObject] = []
+
+        for item in items:
+            if self.positon == item.position:
+                obj_list.append(item)
+
+        for enemy in enemies:
+            if self.position == enemy.position:
+                obj_list.append(enemy)
+
+        return obj_list
+
     def update(self):
         global game_map
         
         self.move()
 
-        for game_obj in game_map[self.position.y][self.position.x]:
-            if not isinstance(game_obj, GameObject): continue
-            elif not game_obj.active: continue
+        collisions = self.sorted_objects()
+
+        for game_obj in collisions:
+            if not game_obj.active: continue
 
             if isinstance(game_obj, Item):
                 print(game_obj)
@@ -183,23 +223,23 @@ def print_game_map(game_map: list):
     pass
 
 def main():
-    global game_map
+    global game_map, enemies, items
 
     initial_hp, initial_atk = map(int, input().split())
     map_dimensions: Vector2 = input_coordinates()
     player_position: Vector2 = input_coordinates(',')
     exit_position: Vector2 = input_coordinates(',')
-    monster_quantity: int = int(input())
-    monsters: list[Enemy] = list(map(Enemy, [input().split() for _ in range(monster_quantity)]))
+    enemy_quantity: int = int(input())
+    enemies: list[Enemy] = list(map(Enemy, [input().split() for _ in range(enemy_quantity)]))
     item_quantity: int = int(input())
     items: list[Item] = list(map(Item, [input().split() for _ in range(item_quantity)]))
 
 
-    game_map = create_game_map(map_dimensions, monsters, items)
+    game_map = create_game_map(map_dimensions, enemies, items)
 
     player = Player(initial_hp, initial_atk, player_position)
     
-    game_active: bool
+    game_active: bool = True
 
     while game_active:
         pass
