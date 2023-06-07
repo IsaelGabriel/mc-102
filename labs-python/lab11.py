@@ -100,7 +100,7 @@ class Item(GameObject):
 def input_coordinates(sep: str = " ") -> Vector2:
     return Vector2(tuple(map(int, input().split(sep))))
 
-def formatted_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[Item]) -> list[list]:
+def create_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[Item]) -> list[list]:
     game_map = [[[] for columns in range(dimensions.x)] for lines in range(dimensions.y)]
 
     for enemy in enemies:
@@ -124,7 +124,7 @@ def main():
     item_quantity: int = int(input())
     items: list[Item] = list(map(Item, [input().split() for _ in range(item_quantity)]))
 
-    game_map = formatted_game_map(map_dimensions, monsters, items)
+    game_map = create_game_map(map_dimensions, monsters, items)
 
 if __name__ == "__main__":
     main()
