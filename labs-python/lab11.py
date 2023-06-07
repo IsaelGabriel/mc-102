@@ -60,6 +60,10 @@ class Enemy:
         self._position: Vector2 = Vector2(tuple(map(int, args[3].split(','))))
     
     @property
+    def behaviour(self) -> str:
+        return self._behaviour
+
+    @property
     def position(self) -> Vector2:
         return self._position
     
@@ -73,6 +77,10 @@ class Item:
         self._behaviour: str = args[1]
         self._position: Vector2 = Vector2(tuple(map(int, args[2].split(','))))
         self._value: int = int(args[3])
+
+    @property
+    def behaviour(self) -> str:
+        return self._behaviour
 
     @property
     def position(self) -> Vector2:
@@ -89,10 +97,10 @@ def formatted_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[It
     game_map = [[[] for columns in range(dimensions.x)] for lines in range(dimensions.y)]
 
     for enemy in enemies:
-        game_map[enemy.position.y][enemy.position.x].append("E")
+        game_map[enemy.position.y][enemy.position.x].append(enemy.behaviour)
     
     for item in items:
-        game_map[item.position.y][item.position.x].append("I")
+        game_map[item.position.y][item.position.x].append(item.behaviour)
     
     return game_map
 
