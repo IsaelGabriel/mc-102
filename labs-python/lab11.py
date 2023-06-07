@@ -12,7 +12,10 @@ class Vector2:
     
     @x.setter
     def x(self, new_x: int):
+        global game_map
+
         if new_x < 0: new_x = 0
+        elif new_x > len(game_map[0]) - 1: new_x = len(game_map[0]) - 1
         self._coordinates = (self._coordinates[0], new_x)
 
     @property
@@ -21,7 +24,10 @@ class Vector2:
     
     @y.setter
     def y(self, new_y: int):
+        global game_map
+        
         if new_y < 0: new_y = 0
+        elif new_y > len(game_map) - 1: new_y = len(game_map) - 1
         self._coordinates = (new_y, self._coordinates[1])
     
     def __add__(self, other):
