@@ -43,6 +43,7 @@ class GameObject:
     def __init__(self):
         self._position = Vector2(0, 0)
         self._id: int = 0
+        self.active = True
 
     @property
     def position(self) -> Vector2:
@@ -81,7 +82,7 @@ class Item(GameObject):
         self._name: str = args[0]
         self._behaviour: str = args[1]
         self._position: Vector2 = Vector2(tuple(map(int, args[2].split(','))))
-        self._value: int = int(args[3])
+        self._value: int = max(1, int(args[3])) if self._behaviour == 'd' else int(args[3])
 
     @property
     def behaviour(self) -> str:
@@ -95,12 +96,17 @@ class Item(GameObject):
         return f"[{self._behaviour}]Personagem adquiriu o objeto {self._name} com status de {str(self._value)}"
 
 class Player(GameObject):
-    def __init__(self, hp: int, atk: int, position: Vector2):
+    def __init__(self, hp: int, atk: int, position: Vector2, exit_position: Vector2):
+        global game_map
+
         super.__init__()
         self._hp: int = hp
         self._atk: int = atk
         self._position: Vector2 = position
-        self.alive: bool = True
+        self._exit: Vector2 = exit_position
+
+        game_map[position.y][position.x].append(self)
+        self.update_id()
 
     @property
     def hp(self) -> int:
@@ -145,12 +151,16 @@ class Player(GameObject):
         self.move()
 
         for game_obj in game_map[self.position.y][self.position.x]:
+            if not isinstance(game_obj, GameObject): continue
+            elif not game_obj.active: continue
+
             if isinstance(game_obj, Item):
                 print(game_obj)
                 if game_obj.behaviour == 'v':
                     self.hp += game_obj.value
                 elif game_obj.behaviour == 'd':
                     self.atk += game_obj.value
+                game_obj.active = False
 
     def die(self):
         pass
@@ -175,7 +185,7 @@ def print_game_map(game_map: list):
 def main():
     global game_map
 
-    initial_hp, initial_dmg = map(int, input().split())
+    initial_hp, initial_atk = map(int, input().split())
     map_dimensions: Vector2 = input_coordinates()
     player_position: Vector2 = input_coordinates(',')
     exit_position: Vector2 = input_coordinates(',')
@@ -184,8 +194,11 @@ def main():
     item_quantity: int = int(input())
     items: list[Item] = list(map(Item, [input().split() for _ in range(item_quantity)]))
 
+
     game_map = create_game_map(map_dimensions, monsters, items)
 
+    player = Player(initial_hp, initial_atk, player_position)
+    
     game_active: bool
 
     while game_active:
