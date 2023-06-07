@@ -102,6 +102,7 @@ class Enemy(GameObject):
             self.active = False
 
     def update(self):
+        if not self.active: return
         direction = Vector2(0, 0)
         match self._behaviour:
             case 'U':
@@ -153,7 +154,11 @@ class Player(GameObject):
     
     @hp.setter
     def hp(self, new_hp: int):
-        if new_hp < 0: new_hp = 0
+        if self._hp == 0: return
+
+        if new_hp <= 0:
+            new_hp = 0
+            self.active = False
         self._hp = new_hp
 
     @property
@@ -217,6 +222,10 @@ class Player(GameObject):
         
         self.move()
 
+        if self.position == self.exit:
+            self.active = False
+            return
+
         collisions = self.sorted_objects()
 
         for game_obj in collisions:
@@ -250,8 +259,40 @@ def create_game_map(dimensions: Vector2, enemies: list[Enemy], items: list[Item]
     
     return game_map
 
-def print_game_map(game_map: list):
-    pass
+def print_game_map(player: Player, exit_position: Vector2):
+    global game_map, enemies, items
+    
+    text: str = ""
+    
+    current_position: Vector2(0, 0)
+
+    for y in range(len(game_map)):
+        current_position.y = y
+        line: list = []
+        for x in range(len(game_map[y])):
+            current_position.x = x
+            if player.position == current_position:
+                if player.active:
+                    line.append('P')
+                else:
+                    line.append('X')
+            elif exit_position == current_position:
+                line.append('*')
+            else:
+                has_obj: bool = False
+
+                for game_obj in (items + enemies)[::-1]:
+                    if game_obj.active and game_obj.position == current_position:
+                        line.append(game_obj.behaviour)
+                        has_obj = True
+                        break
+
+                if not has_obj: line.append('.')
+
+        text += " ".join(line) + "\n"
+
+    print(text + "\n")
+
 
 def main():
     global game_map, enemies, items
@@ -268,12 +309,22 @@ def main():
 
     game_map = create_game_map(map_dimensions, enemies, items)
 
-    player = Player(initial_hp, initial_atk, player_position)
-    
-    game_active: bool = True
+    player = Player(initial_hp, initial_atk, player_position, exit_position)
 
-    while game_active:
-        pass
+    while player.active:
+        player.update()
+        
+        for enemy in enemies:
+            if enemy.active:
+                enemy.update()
+            else:
+                enemies.remove(enemy)
+        
+        print_game_map(player, exit_position)
+
+        if player.position == exit_position:
+            print("Chegou ao fim!")
+
 
 if __name__ == "__main__":
     main()
