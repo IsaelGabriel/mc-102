@@ -19,39 +19,80 @@ class Image:
 
         self._header = "P2\n# Imagem criada pelo lab13"
 
-        self._dimensions: tuple[int, int] = tuple(map(int, self._lines[2].split()))[::-1]
+        self._dimensions: tuple[int, int] = tuple(map(int, self._lines[2].split()[::-1]))
         
         self._max_value: int = int(self._lines[3])
 
         self._values: list = []
 
-        for y in range(self._dimensions[1]):
+        for y in range(self._dimensions[0]):
             line: list[int] = list(map(int, self._lines[4 + y].split()))
             self._values.append(line)
-
-    def get_area(self, value_limit: tuple[int, int], seed: tuple[int, int], offset: int, area: list = []) -> list:
-        if seed[0] > offset or seed[1] > offset: return []
-
-        area_add = []
-
-        for i in range(2 * offset + 2):
-            y = seed[0] + i - offset
-            if y < self._dimensions[0] and y >= 0:
-                for j in range(2* offset + 2):
-                    x = seed[1] + j - offset
-                    if x < self._dimensions[1] and x >= 0:
-                        if self._values[y][x] >= value_limit[0] and self._values[y][x] <= value_limit[1]:
-                            area_add.append(self._values[y][x])
-                    
         
-        
-        return area
-                
+    
+    def select_all(self, tolerance: int, color: int) -> list:
+        for y in range(self._dimensions[0]):
+            for x in range(self._dimensions[1]):
+                if self._values[y][x] >= color - tolerance and self._values[y][x] <= color + tolerance:
+                    self._values[y][x] *= -1
+                    self._values[y][x] -= 1
+
+    def goes_to(self, position: tuple[int, int], origin: tuple[int, int]) -> bool:
+        for i in range(3):
+            y = position[0] + i - 1
+            if y >= 0 and y < self._dimensions[0]:
+                for j in position(3):
+                    x = position[1] + i - 1
+                    if x >= 0 and x < self._dimensions[1]:
+                        if self._values[y, x] < 0:
+                            if self.goes_to((y, x), origin):
+                                return True
+
+        return False 
+
+    def select(self, tolerance: int, seed: tuple[int, int], start_color: int, value_limit: tuple[int,int]):
+        for y in range(self._dimensions[0]):
+            for x in range(self._dimensions[1]):
+                if self._values[y][x] < 0:
+                    if not self.goes_to((y, x), seed):
+                        self._values[y][x] += 1
+                        self._values[y][x] *= -1
+
     def bucket(self, color: int, tolerance: int, seed: tuple[int, int]):
-        start_value = self._values[seed[0]][seed[1]]
-        value_limit = (start_value - tolerance, start_value + tolerance)
-        for position in self.get_area(value_limit, seed, tolerance)[0]:
-            self._values[position[0]][position[1]] = color
+        start_color = self._values[seed[0]][seed[1]]
+        value_limit = (start_color - tolerance, start_color + tolerance)
+
+        self.select(tolerance, seed, start_color, value_limit)
+
+        for y in range(self._dimensions[0]):
+            for x in range(self._dimensions[1]):
+                if self._values[y][x] < 0:
+                    self._values[y][x] = color
+
+
+    def negative(self, tolerance: int, seed: tuple[int, int], start_color: int = -1, value_limit: tuple[int,int] = None):
+        start_color = self._values[seed[0]][seed[1]]
+        value_limit = (start_color - tolerance, start_color + tolerance)
+
+        self.select(tolerance, seed, start_color, value_limit)
+
+        for y in range(self._dimensions[0]):
+            for x in range(self._dimensions[1]):
+                if self._values[y][x] < 0:
+                    self._values[y][x] += self._max_value + 1
+
+    def cmask(self, tolerance: int, seed: tuple[int, int]):
+        start_color = self._values[seed[0]][seed[1]]
+        value_limit: tuple[int, int] = (start_color - tolerance, start_color + tolerance)
+
+        self.select(tolerance, seed, start_color, value_limit)
+        
+        for y in range(self._dimensions[0]):
+            for x in range(self._dimensions[1]):
+                self._values[y][x] = 0 if self._values[y][x] < 0 else 255
+
+        
+
 
     def copy(self):
         new_image = Image()
@@ -61,9 +102,9 @@ class Image:
         return new_image
     
     def __str__(self) -> str:
-        text = "\n".join([self._header, " ".join(map(str, self._dimensions)), str(self._max_value)])
+        text = "\n".join([self._header, " ".join(map(str, self._dimensions[::-1])), str(self._max_value)])
 
-        for y in range(self.height):
+        for y in range(self._dimensions[0]):
             text += "\n" + " ".join(map(str, self._values[y]))
 
         return text
@@ -78,23 +119,22 @@ def update(img: Image):
 
         img.bucket(color, tolerance, seed)
 
-
     elif operation[0] == "negative":
         tolerance: int = int(operation[1])
-        position: tuple[int, int] = (int(operation[3]), int(operation[2]))
-        start_value: int = img[position]
+        seed: tuple[int, int] = (int(operation[3]), int(operation[2]))
 
-        img.negative(start_value, position, tolerance)
+        img.negative(tolerance, seed)
 
     elif operation[0] == "cmask":
         tolerance: int = int(operation[1])
-        position: tuple[int, int] = (int(operation[3]), int(operation[2]))
-        start_value: int = img[position]
+        seed: tuple[int, int] = (int(operation[3]), int(operation[2]))
 
-        img.cmask(start_value, position, tolerance)
+        img.cmask(tolerance, seed)
 
     elif operation[0] == "save":
         print(str(img), end="")
+
+    #img.reset_selection_matrix()
 
 def main() -> None:
     img = Image(input())
